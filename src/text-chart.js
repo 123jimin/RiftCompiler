@@ -68,7 +68,7 @@ export function parseEvent(src) {
  * @return {RegExp}
  */
 function createChartLineRegExp(define_keys) {
-    const define_group = define_keys.length > 0 ? `(${define_keys.map(escapeRegExp).join('|')}|\\S)\\s*` : `(\\S)\\s*`;
+    const define_group = define_keys.length > 0 ? `(${define_keys.map(escapeRegExp).join('|')}|\\S{1,3})\\s*` : `(\\S)\\s*`;
     return new RegExp(`^${define_group.repeat(3)}$`);
 }
 
@@ -144,7 +144,7 @@ export class TextChart {
                 let note_data = /** @type {object|null} */ null;
                 if(str_note in defines) {
                     note_data = defines[str_note];
-                } else if(str_note.length > 1) {
+                } else if(str_note.length >= 4) {
                     note_data = JSON.parse(str_note);
                 } else if(str_note === '|') {
                     continue;
@@ -156,6 +156,11 @@ export class TextChart {
                         startBeatNumber: start_beat,
                         endBeatNumber: start_beat + 1.0,
                         ...note_data,
+                    };
+
+                    if('data' in event) event.data = {
+                        ShouldClampToSubdivisions: true,
+                        ...event.data,
                     };
 
                     events.push(event);
@@ -222,7 +227,7 @@ export class TextChart {
                 case "header": {
                     const equal_index = line.indexOf('=');
                     if(equal_index > 0) {
-                        header[line.slice(0, equal_index).trimEnd()] = parseEvent(line.slice(equal_index+1));
+                        header[line.slice(0, equal_index).trimEnd()] = JSON.parse(line.slice(equal_index+1));
                     }
                     break;
                 }
@@ -233,7 +238,7 @@ export class TextChart {
                         if(define_key.match(/[\s#\-|]/)) {
                             throw new Error(`'${define_key}' can't be used as a name!`);
                         }
-                        object_defines[define_key] = parseEvent(line.slice(equal_index+1));
+                        object_defines[define_key] = parseEvent(line.slice(equal_index+1).trimStart());
                     }
                     break;
                 }
