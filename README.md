@@ -17,7 +17,7 @@ riftc in_file.rift -o out_file.json
 ```text
 [header]
 bpm=120
-beatDevisions=2
+beatDivisions=2
 
 [body]
 
