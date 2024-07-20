@@ -44,7 +44,7 @@ Arbitrary fields (other than `events`, which should be specified within the `[bo
 
 The values are specified one per line, like `name=value`. Spaces around the equal sign are ignored.
 
-Here are currently available fields and their meanings. `bpm` and `beatDivisions` are should be specified, and rests are optional.
+Here are currently available fields and their meanings. `bpm` and `beatDivisions` should be specified, and rests are optional.
 
 | type | name | meaning |
 | ---- | ---- | ------- |
