@@ -2,7 +2,9 @@
 
 import { escapeRegExp } from "./util.js";
 
-/** @typedef {{beat: {type: '+'|'=', amount: number}, notes: string[]}} ChartLine */
+/** @typedef {{type: 'assign', name: string, value: string}} ChartLineAssign */
+/** @typedef {{type: 'notes', duration: number, notes: string[]}} ChartLineNotes  */
+/** @typedef {ChartLineAssign|ChartLineNotes} ChartLine */
 
 export const ENEMY_MAP = Object.freeze({
     Nothing: -1,
@@ -73,40 +75,32 @@ function createChartLineRegExp(define_keys) {
 }
 
 /**
- * @param {string} str
- * @returns {{type: '+'|'=', amount: number}|null}
- */
-function parseChartLineBeat(str) {
-    if(str[0] === '+' || str[0] === '=') {
-        const str_amount = str.slice(1).trim();
-        if(!str_amount) return {type: '+', amount: 0};
-        return {
-            type: str[0],
-            amount: parseFloat(str_amount),
-        };
-    } else {
-        return null;
-    }
-}
-
-/**
  * @param {RegExp} chart_line_regexp
  * @param {string} src 
  * @returns {ChartLine|null}
  */
 function parseChartLine(chart_line_regexp, src) {
     const sep_ind = src.indexOf('|');
-    if(sep_ind <= 0) return null;
+    if(sep_ind < 0) {
+        const sep_eq = src.indexOf('=');
+        if(sep_eq <= 0) return null;
 
-    const beat = parseChartLineBeat(src.slice(0, sep_ind));
-    if(!beat) return null;
+        const name = src.slice(0, sep_eq).trim();
+        const value = src.slice(sep_eq+1).trim();
 
+        return {type: 'assign', name, value};
+    }
+
+    const src_duration = src.slice(0, sep_ind).trim();
+    const duration = src_duration ? parseFloat(src_duration) : 1.0;
+    
     const str_chart_line_main = src.slice(sep_ind+1).trim();
     const match = str_chart_line_main.match(chart_line_regexp);
+
     if(match) {
-        return {beat, notes: [match[1], match[2], match[3]]};
+        return {type: 'notes', duration, notes: [match[1], match[2], match[3]]};
     } else {
-        return {beat, notes: [str_chart_line_main]};
+        return {type: 'notes', duration, notes: [str_chart_line_main]};
     }
 }
 
@@ -129,50 +123,66 @@ export class TextChart {
         /** @type {Array<object|null>} */
         const last_event_by_track = [null, null, null];
 
-        let start_beat = 0;
-        for(const {beat, notes} of lines) {
-            switch(beat.type) {
-                case '+': start_beat += beat.amount; break;
-                case '=': start_beat = beat.amount; break;
-            }
+        let curr_beat = 0;
+        line_loop: for(const line of lines) {
+            switch(line.type) {
+                case 'assign':
+                    if(line.name === 'beatNumber') {
+                        curr_beat = parseFloat(line.value);
+                        continue line_loop;
+                    }
+                    break;
+                case 'notes': {
+                    let next_beat = curr_beat + line.duration;
+                    if(!Number.isSafeInteger(next_beat)) {
+                        next_beat = Math.round(next_beat * beatDivisions) / beatDivisions;
+                    }
 
-            for(let track=0; track<notes.length; ++track) {
-                const str_note = notes[track];
-                const last_event = last_event_by_track[track];
-                if(last_event) last_event.endBeatNumber = start_beat;
+                    const notes = line.notes;
+                    for(let track=0; track<notes.length; ++track) {
+                        const str_note = notes[track];
+        
+                        let note_data = /** @type {object|null} */ null;
+                        if(str_note in defines) {
+                            note_data = defines[str_note];
+                        } else if(str_note.length >= 4) {
+                            note_data = JSON.parse(str_note);
+                        } else if(str_note === '|') {
+                            const prev_note = last_event_by_track[track];
+                            if(prev_note) {
+                                prev_note.endBeatNumber = next_beat;
+                            }
+                            continue;
+                        }
+        
+                        if(note_data) {
+                            const note_duration = ('duration' in note_data) ? note_data['duration'] : 1.0;
 
-                let note_data = /** @type {object|null} */ null;
-                if(str_note in defines) {
-                    note_data = defines[str_note];
-                } else if(str_note.length >= 4) {
-                    note_data = JSON.parse(str_note);
-                } else if(str_note === '|') {
-                    continue;
+                            const event = {
+                                track: track+1,
+                                startBeatNumber: curr_beat,
+                                endBeatNumber: curr_beat + note_duration,
+                                ...note_data,
+                            };
+
+                            delete event.duration;
+        
+                            if('data' in event) event.data = {
+                                ShouldClampToSubdivisions: true,
+                                ...event.data,
+                            };
+        
+                            events.push(event);
+                            last_event_by_track[track] = event;
+                        } else {
+                            last_event_by_track[track] = null;
+                        }
+                    }
+
+                    curr_beat = next_beat;
+                    break;
                 }
-
-                if(note_data) {
-                    const event = {
-                        track: track+1,
-                        startBeatNumber: start_beat,
-                        endBeatNumber: start_beat + 1.0,
-                        ...note_data,
-                    };
-
-                    if('data' in event) event.data = {
-                        ShouldClampToSubdivisions: true,
-                        ...event.data,
-                    };
-
-                    events.push(event);
-                    last_event_by_track[track] = event;
-                } else {
-                    last_event_by_track[track] = null;
-                }
-            }
-            
-            if(!Number.isSafeInteger(start_beat)) {
-                start_beat = Math.round(start_beat * beatDivisions) / beatDivisions;
-            }
+            }            
         }
 
         for(const event of events) {
