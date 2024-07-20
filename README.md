@@ -14,23 +14,110 @@ riftc in_file.rift -o out_file.json
 
 ## Chart Format
 
+A chart consists of three sections: `[header]`, `[object]`, and `[body]`.
+
 ```text
+# Any line starting with # will be ignored.
+
 [header]
-bpm=120
+bpm=222.22
 beatDivisions=2
+
+[object]
+S1 = GreenSlime
 
 [body]
 
-     | ---
-0.33 | ---
-0.33 | ---
-0.33 | ---
-     | ---
-0.5  | ---
-0.5  | ---
-     | ---
-     | ---
-     | ---
-beatNumber=1
+    | S1 -- --
+0.5 | -- S1 --
+0.5 | -- -- S1
+beatNumber = 10
 
+    | -- S1 --
+    | S1 -- --
+beatNumber = 1
 ```
+
+### Header
+
+Arbitrary fields (other than `events`, which should be specified within the `[body]` section) for a chart JSON object can be specified in this section.
+
+The values are specified one per line, like `name=value`. Spaces around the equal sign are ignored.
+
+Here are currently available fields and their meanings. `bpm` and `beatDivisions` are should be specified, and rests are optional.
+
+| type | name | meaning |
+| ---- | ---- | ------- |
+| integer | `bpm` | BPM of the chart, which should be an integer. |
+| integer | `beatDivisions` | Maximum \# of divisions per beat. |
+| string | `name` | |
+| string | `inputMappingOverrideJson` | |
+| integer | `cameraZoomLevel` | |
+| list of floats | `BeatTimings` | |
+
+Currently, the values should be specified in accordance with the JSON syntax. For example, `name` should be specified like `name="Foobar"`, with double quotes.
+
+### Object
+
+Within this section, useful shorthands for body objects can be specified in the format of `name=value`.
+
+Arbitrary characters, other than spaces, `#`, `-`, or `|` can be used as a name.
+
+A value can either be predefined names or a JSON object.
+
+Here are currently recommended list of definitions.
+
+```text
+[object]
+
+S1 = GreenSlime
+S2 = BlueSlime
+S3 = YellowSlime
+
+K1 = BaseSkeleton
+K2 = ShieldSkeleton
+K3 = TripleShieldBaseSkeleton
+
+Ky = YellowSkeleton
+KY = ShieldYellowSkeleton
+
+Kb = BlackSkeleton
+KB = ShieldBlackSkeleton
+
+Hr = {"type":"SpawnEnemy","data":{"EnemyId":"Skull","ShouldStartFacingRight":true}}
+Hl = {"type":"SpawnEnemy","data":{"EnemyId":"Skull","ShouldStartFacingRight":false}}
+HR = {"type":"SpawnEnemy","data":{"EnemyId":"StrongSkull","ShouldStartFacingRight":true}}
+HL = {"type":"SpawnEnemy","data":{"EnemyId":"StrongSkull","ShouldStartFacingRight":false}}
+
+Br = {"type":"SpawnEnemy","data":{"EnemyId":"BlueBat","ShouldStartFacingRight":true}}
+Bl = {"type":"SpawnEnemy","data":{"EnemyId":"BlueBat","ShouldStartFacingRight":false}}
+BR = {"type":"SpawnEnemy","data":{"EnemyId":"YellowBat","ShouldStartFacingRight":true}}
+BL = {"type":"SpawnEnemy","data":{"EnemyId":"YellowBat","ShouldStartFacingRight":false}}
+B> = {"type":"SpawnEnemy","data":{"EnemyId":"RedBat","ShouldStartFacingRight":true}}
+B< = {"type":"SpawnEnemy","data":{"EnemyId":"RedBat","ShouldStartFacingRight":false}}
+
+F1 = Apple
+F2 = Cheese
+F3 = Drumstick
+F4 = Ham
+
+Wy = WyrmHead
+```
+
+### Body
+
+The `[body]` section specifies list of events (including enemy spawns), which corresponds to `events` field of a chart JSON object.
+
+**Note that the lines are read from bottom to top, to match how they appear in-game.**
+
+There can be two kinds of lines: assignment lines and note lines.
+
+`name=value`
+
+`duration | notes`
+
+Notes can either be a sequence of three identifiers or a JSON object.
+
+An undefined identifier will be considered as a blank, and can't be longer than 2 characters long.
+
+`|` specifies a continuation of a long note (wyrm).
