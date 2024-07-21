@@ -315,7 +315,7 @@ export class TextChart {
                 break;
             }
             case 'raw': {
-                state.events.push(adjustEventTiming(state.curr_beat + 8, JSON.parse(line.params)));
+                state.events.push(adjustEventTiming(state.curr_beat, JSON.parse(line.params)));
                 break;
             }
             case 'skip': {
