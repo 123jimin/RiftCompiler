@@ -9,34 +9,14 @@ This is a simple program that enables people to create chart files quickly using
 (TODO)
 
 ```bash
-riftc in_file.rift -o out_file.json
+riftc demo/demo.rift -o demo/demo.json
 ```
 
 ## Chart Format
 
+Check [the demo file](demo/demo.rift) for an example.
+
 A chart consists of three sections: `[header]`, `[object]`, and `[body]`.
-
-```text
-# Any line starting with # will be ignored.
-
-[header]
-bpm=222
-beatDivisions=2
-
-[object]
-S1 = GreenSlime
-
-[body]
-
-    | S1 -- --
-0.5 | -- S1 --
-0.5 | -- -- S1
-@beat 10
-
-    | -- S1 --
-    | S1 -- --
-@beat 1
-```
 
 ### Header
 
@@ -96,6 +76,18 @@ BL = {"type":"SpawnEnemy","data":{"EnemyId":"YellowBat","ShouldStartFacingRight"
 B> = {"type":"SpawnEnemy","data":{"EnemyId":"RedBat","ShouldStartFacingRight":true}}
 B< = {"type":"SpawnEnemy","data":{"EnemyId":"RedBat","ShouldStartFacingRight":false}}
 
+Zr = {"type":"SpawnEnemy","data":{"EnemyId":"GreenZombie","ShouldStartFacingRight":true}}
+Zl = {"type":"SpawnEnemy","data":{"EnemyId":"GreenZombie","ShouldStartFacingRight":false}}
+ZR = {"type":"SpawnEnemy","data":{"EnemyId":"RedZombie","ShouldStartFacingRight":true}}
+ZL = {"type":"SpawnEnemy","data":{"EnemyId":"RedZombie","ShouldStartFacingRight":false}}
+
+M1 = BladeMaster
+M2 = StrongBladeMaster
+
+Hp = Harpy
+Hq = QuickHarpy
+Hs = StrongHarpy
+
 F1 = Apple
 F2 = Cheese
 F3 = Drumstick
@@ -129,6 +121,7 @@ An undefined identifier will be considered as a blank, and can't be longer than 
 | `beat` | beat number in floats | Sets the current beat number. |
 | `debug` | any message | Prints the message while compiling, with line number and current beat number. |
 | `raw` | any JSON object | Add the object to the chart. |
+| `skip` | `true` or `false` | If set to `true`, all instructions until next `skip` will be ignored. |
 | `bladeMasterAttackRow` | row number | Sets the default attack row (`BlademasterAttackRow`) for blademasters. (-1 to disable it.) |
 | `portal` | `{"duration": duration, "in": [in_track, in_row], "out": [out_track, out_row]}` (all variables are numbers) | Creates a portal with given parameters. |
 

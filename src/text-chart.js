@@ -2,12 +2,12 @@
 
 import { escapeRegExp } from "./util.js";
 
+/** @import {ChartEvent, TextChartProcessState} from "./types.d.ts" */
+
 /** @typedef {{line_no: number}} ChartLineMetadata */
 /** @typedef {{type: 'notes', duration: number, notes: string[]}} ChartLineNotes  */
 /** @typedef {{type: 'invoke', name: string, params: string}} ChartLineInvoke */
 /** @typedef {ChartLineMetadata & (ChartLineNotes|ChartLineInvoke)} ChartLine */
-
-/** @typedef {Record<string, unknown>} ChartEvent */
 
 export const ENEMY_MAP = Object.freeze({
     Nothing: -1,
@@ -166,8 +166,6 @@ function parseChartLine(line_no, chart_line_regexp, src) {
     }
 }
 
-/** @typedef {{events: Array<ChartEvent>, beat_divisions: number, curr_beat: number, last_event_by_track: Array<object|null>, blade_master_attack_row: number}} TextChartProcessState */
-
 export class TextChart {
     /**
      * @param {Record<string, unknown>} header 
@@ -185,13 +183,21 @@ export class TextChart {
         /** @type {TextChartProcessState} */
         const process_state = {
             events: data.events,
+            last_event_by_track: [null, null, null],
+            
             beat_divisions: data.beatDivisions,
             curr_beat: 0,
-            last_event_by_track: [null, null, null],
+
+            skip_start: null,
+
             blade_master_attack_row: -1,
         };
 
         for(const line of lines) {
+            if(process_state.skip_start !== null) {
+                if(!(line.type === 'invoke' && line.name.toLowerCase() === 'skip')) continue;
+            }
+
             try {
                 switch(line.type) {
                     case 'notes': this.#processLineNotes(process_state, defines, line); break;
@@ -290,10 +296,6 @@ export class TextChart {
                 console.log(`(debug) Line ${line.line_no}: beatNumber=${state.curr_beat}${line.params ? ' | ' + line.params : ''}`);
                 break;
             }
-            case 'raw': {
-                state.events.push(adjustEventTiming(state.curr_beat + 8, JSON.parse(line.params)));
-                break;
-            }
             case 'portal': {
                 const {duration, in: [in_track, in_row], out: [out_track, out_row], color} = JSON.parse(line.params);
                 state.events.push({
@@ -310,6 +312,18 @@ export class TextChart {
                         TrapChildSpawnRow: out_row,
                     },
                 });
+                break;
+            }
+            case 'raw': {
+                state.events.push(adjustEventTiming(state.curr_beat + 8, JSON.parse(line.params)));
+                break;
+            }
+            case 'skip': {
+                if(line.params.trim() === 'true') {
+                    state.skip_start = state.curr_beat;
+                } else {
+                    state.skip_start = null;
+                }
                 break;
             }
             default:
