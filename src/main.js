@@ -36,7 +36,12 @@ export class Main {
             convert_timeout_id = setTimeout(async () => {
                 console.log(`\x1Bc[${(new Date).toISOString()}] Applying changes...`);
 
-                await this.convert();
+                try {
+                    await this.convert();
+                } catch(e) {
+                    console.error(e);
+                }
+
                 convert_timeout_id = null;
             }, 50);
         }

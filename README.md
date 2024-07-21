@@ -20,7 +20,7 @@ A chart consists of three sections: `[header]`, `[object]`, and `[body]`.
 # Any line starting with # will be ignored.
 
 [header]
-bpm=222.22
+bpm=222
 beatDivisions=2
 
 [object]
@@ -31,11 +31,11 @@ S1 = GreenSlime
     | S1 -- --
 0.5 | -- S1 --
 0.5 | -- -- S1
-beatNumber = 10
+@beat 10
 
     | -- S1 --
     | S1 -- --
-beatNumber = 1
+@beat 1
 ```
 
 ### Header
@@ -110,9 +110,9 @@ The `[body]` section specifies list of events (including enemy spawns), which co
 
 **Note that the lines are read from bottom to top, to match how they appear in-game.**
 
-There can be two kinds of lines: assignment lines and note lines.
+There can be two kinds of lines: invoke lines and note lines.
 
-`name=value`
+`@name params`
 
 `duration | notes`
 
@@ -121,3 +121,19 @@ Notes can either be a sequence of three identifiers or a JSON object.
 An undefined identifier will be considered as a blank, and can't be longer than 2 characters long.
 
 `|` specifies a continuation of a long note (wyrm).
+
+#### Invokes
+
+| name | params | description |
+| ---- | ------ | ----------- |
+| `beat` | beat number in floats | Sets the current beat number. |
+| `debug` | any message | Prints the message while compiling, with line number and current beat number. |
+| `raw` | any JSON object | Add the object to the chart. |
+| `bladeMasterAttackRow` | row number | Sets the default attack row (`BlademasterAttackRow`) for blademasters. (-1 to disable it.) |
+| `portal` | `[duration, in_track, in_row, out_track, out_row]` | Creates a portal with given parameters. |
+
+Note for raw objects:
+
+- Use `data` instead of `dataPairs`. 
+- By default, `startBeatNumber` and `endBeatNumber` will be set automatically.
+  - You may override `startBeatNumber`, and set `duration` or `endBeatNumber` to override it.
