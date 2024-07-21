@@ -120,9 +120,11 @@ An undefined identifier will be considered as a blank, and can't be longer than 
 | ---- | ------ | ----------- |
 | `beat` | beat number in floats | Sets the current beat number. |
 | `debug` | any message | Prints the message while compiling, with line number and current beat number. |
-| `raw` | any JSON object | Add the object to the chart. |
+| `raw` | any JSON object | Add the event to the chart. |
+| `spawn` | any JSON object | Same as `raw`, but with adjusted times. |
 | `skip` | `true` or `false` | If set to `true`, all instructions until next `skip` will be ignored. |
 | `bladeMasterAttackRow` | row number | Sets the default attack row (`BlademasterAttackRow`) for blademasters. (-1 to disable it.) |
+| `bounce` | `{"duration": duration, "position": [track, row], "direction": direction}` | Creates a bounce trap. |
 | `coals` | `{"duration": duration, "position": [track, row]}` | Creates a burning floor. |
 | `portal` | `{"duration": duration, "in": [in_track, in_row], "out": [out_track, out_row]}` | Creates a portal. |
 
@@ -131,3 +133,18 @@ Note for raw objects:
 - Use `data` instead of `dataPairs`. 
 - By default, `startBeatNumber` and `endBeatNumber` will be set automatically.
   - You may override `startBeatNumber`, and set `duration` or `endBeatNumber` to override it.
+
+Note for `bounce`:
+
+- You may use either the name or the value for the direction.
+
+| name | value |
+| ---- | ----- |
+| `"Up"` | 0 |
+| `"Right"` | 1 |
+| `"Left"` | 2 |
+| `"Down"` | 3 |
+| `"UpLeft"` | 4 |
+| `"UpRight"` | 5 |
+| `"DownLeft"` | 6 |
+| `"DownRight"` | 7 |

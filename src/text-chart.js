@@ -1,6 +1,7 @@
 //@ts-check
 
 import { escapeRegExp } from "./util.js";
+import { ENEMY_MAP, TRAP_DIRECTION_MAP } from "./const.js";
 
 /** @import {ChartEvent, TextChartProcessState} from "./types.d.ts" */
 
@@ -8,54 +9,6 @@ import { escapeRegExp } from "./util.js";
 /** @typedef {{type: 'notes', duration: number, notes: string[]}} ChartLineNotes  */
 /** @typedef {{type: 'invoke', name: string, params: string}} ChartLineInvoke */
 /** @typedef {ChartLineMetadata & (ChartLineNotes|ChartLineInvoke)} ChartLine */
-
-export const ENEMY_MAP = Object.freeze({
-    Nothing: -1,
-    EnemyPlaceholder: 0,
-    HealthPlaceholder: 1,
-
-    GreenSlime: 1722,
-    BlueSlime: 4355,
-    YellowSlime: 9189,
-
-    BaseSkeleton: 2202,
-    ShieldSkeleton: 1911,
-    YellowSkeleton: 6803,
-    ShieldYellowSkeleton: 4871,
-    BlackSkeleton: 2716,
-    ShieldBlackSkeleton: 3307,
-    TripleShieldBaseSkeleton: 6471,
-    ShieldedSwungSkeleton: 1707,
-
-    WyrmHead: 7794,
-    WyrmBody: 8079,
-    WyrmTail: 9888,
-
-    BlueBat: 8675309,
-    YellowBat: 717,
-    RedBat: 911,
-
-    Harpy: 8519,
-    QuickHarpy: 3826,
-    StrongHarpy: 8156,
-
-    BladeMaster: 929,
-    StrongBladeMaster: 3685,
-
-    Skull: 4601,
-    StrongSkull: 3543,
-    TrickySkull: 7685,
-
-    GreenZombie: 1234,
-    RedZombie: 1236,
-
-    Cheese: 2054,
-    Apple: 7358,
-    Drumstick: 1817,
-    Ham: 3211,
-
-    Coin: 8883,
-});
 
 /**
  * @param {string} src 
@@ -292,9 +245,30 @@ export class TextChart {
                 state.blade_master_attack_row = parseInt(line.params);
                 break;
             }
+            case 'bounce': {
+                let {duration = 1, position: [track, row], direction} = JSON.parse(line.params);
+                
+                if(direction in TRAP_DIRECTION_MAP) {
+                    direction = TRAP_DIRECTION_MAP[direction];
+                }
+
+                state.events.push({
+                    track,
+                    startBeatNumber: state.curr_beat + 8,
+                    endBeatNumber: state.curr_beat + 9,
+                    type: 'SpawnTrap',
+                    data: {
+                        TrapTypeToSpawn: 'Bounce',
+                        TrapDropRow: row,
+                        TrapHealthInBeats: duration,
+                        TrapDirection: direction,
+                    },
+                });
+                break;
+            }
             case 'coals':
             case 'coal': {
-                const {duration, position: [track, row]} = JSON.parse(line.params);
+                const {duration = 1, position: [track, row]} = JSON.parse(line.params);
                 state.events.push({
                     track,
                     startBeatNumber: state.curr_beat + 8,
@@ -314,7 +288,7 @@ export class TextChart {
                 break;
             }
             case 'portal': {
-                const {duration, in: [in_track, in_row], out: [out_track, out_row], color} = JSON.parse(line.params);
+                const {duration = 1, in: [in_track, in_row], out: [out_track, out_row], color} = JSON.parse(line.params);
                 state.events.push({
                     track: in_track,
                     startBeatNumber: state.curr_beat + 8,
@@ -333,6 +307,10 @@ export class TextChart {
             }
             case 'raw': {
                 state.events.push(adjustEventTiming(state.curr_beat, JSON.parse(line.params)));
+                break;
+            }
+            case 'spawn': {
+                state.events.push(adjustEventTiming(state.curr_beat+8, JSON.parse(line.params)));
                 break;
             }
             case 'skip': {
