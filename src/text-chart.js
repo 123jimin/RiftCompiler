@@ -287,6 +287,22 @@ export class TextChart {
                 console.log(`(debug) Line ${line.line_no}: beatNumber=${state.curr_beat}${line.params ? ' | ' + line.params : ''}`);
                 break;
             }
+            case 'mystery': {
+                const {duration = 1, position: [track, row]} = JSON.parse(line.params);
+                state.events.push({
+                    track,
+                    startBeatNumber: state.curr_beat + 8,
+                    endBeatNumber: state.curr_beat + 9,
+                    type: 'SpawnTrap',
+                    data: {
+                        TrapTypeToSpawn: 'Mystery',
+                        TrapDropRow: row,
+                        TrapHealthInBeats: duration,
+                    },
+                });
+
+                break;
+            }
             case 'portal': {
                 const {duration = 1, in: [in_track, in_row], out: [out_track, out_row], color} = JSON.parse(line.params);
                 state.events.push({

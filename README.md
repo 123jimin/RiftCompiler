@@ -126,6 +126,7 @@ An undefined identifier will be considered as a blank, and can't be longer than 
 | `bladeMasterAttackRow` | row number | Sets the default attack row (`BlademasterAttackRow`) for blademasters. (-1 to disable it.) |
 | `bounce` | `{"duration": duration, "position": [track, row], "direction": direction}` | Creates a bounce trap. |
 | `coals` | `{"duration": duration, "position": [track, row]}` | Creates a burning floor. |
+| `mystery` | `{"duration": duration, "position": [track, row]}` | Creates a mystery trap. |
 | `portal` | `{"duration": duration, "in": [in_track, in_row], "out": [out_track, out_row]}` | Creates a portal. |
 
 Note for raw objects:

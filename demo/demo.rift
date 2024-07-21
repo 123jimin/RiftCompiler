@@ -53,14 +53,16 @@ Wy = WyrmHead
     | -- S1 --
 @beat 999
 
-    | -- -- --
-    | -- -- --
-    | -- -- --
-    | -- -- --
+    | -- -- |
+    | -- -- |
+    | -- -- |
+    | S3 -- Wy
     | -- |  --
     | -- |  --
     | B< |  --
+@mystery {"duration": 2, "position": [2, 3]}
     | -- Wy --
+@bounce {"duration": 2, "position": [1, 3], "direction": "UpRight"}
 @debug This is a debug message.
     | -- Hq M2
     | -- -- Hq
