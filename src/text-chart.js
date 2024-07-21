@@ -292,6 +292,23 @@ export class TextChart {
                 state.blade_master_attack_row = parseInt(line.params);
                 break;
             }
+            case 'coals':
+            case 'coal': {
+                const {duration, position: [track, row]} = JSON.parse(line.params);
+                state.events.push({
+                    track,
+                    startBeatNumber: state.curr_beat + 8,
+                    endBeatNumber: state.curr_beat + 9,
+                    type: 'SpawnTrap',
+                    data: {
+                        TrapTypeToSpawn: 'Coals',
+                        TrapDropRow: row,
+                        TrapHealthInBeats: duration,
+                    },
+                });
+
+                break;
+            }
             case 'debug': {                            
                 console.log(`(debug) Line ${line.line_no}: beatNumber=${state.curr_beat}${line.params ? ' | ' + line.params : ''}`);
                 break;

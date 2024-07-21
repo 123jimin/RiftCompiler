@@ -123,7 +123,8 @@ An undefined identifier will be considered as a blank, and can't be longer than 
 | `raw` | any JSON object | Add the object to the chart. |
 | `skip` | `true` or `false` | If set to `true`, all instructions until next `skip` will be ignored. |
 | `bladeMasterAttackRow` | row number | Sets the default attack row (`BlademasterAttackRow`) for blademasters. (-1 to disable it.) |
-| `portal` | `{"duration": duration, "in": [in_track, in_row], "out": [out_track, out_row]}` (all variables are numbers) | Creates a portal with given parameters. |
+| `coals` | `{"duration": duration, "position": [track, row]}` | Creates a burning floor. |
+| `portal` | `{"duration": duration, "in": [in_track, in_row], "out": [out_track, out_row]}` | Creates a portal. |
 
 Note for raw objects:
 
