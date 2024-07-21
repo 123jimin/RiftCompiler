@@ -291,11 +291,11 @@ export class TextChart {
                 break;
             }
             case 'raw': {
-                state.events.push(adjustEventTiming(state.curr_beat, JSON.parse(line.params)));
+                state.events.push(adjustEventTiming(state.curr_beat + 8, JSON.parse(line.params)));
                 break;
             }
             case 'portal': {
-                const [duration, in_track, in_row, out_track, out_row] = JSON.parse(line.params);
+                const {duration, in: [in_track, in_row], out: [out_track, out_row], color} = JSON.parse(line.params);
                 state.events.push({
                     track: in_track,
                     startBeatNumber: state.curr_beat + 8,
@@ -305,7 +305,7 @@ export class TextChart {
                         TrapTypeToSpawn: 'PortalIn',
                         TrapDropRow: in_row,
                         TrapHealthInBeats: duration,
-                        TrapColor: 0,
+                        TrapColor: color ?? 0,
                         TrapChildSpawnLane: out_track,
                         TrapChildSpawnRow: out_row,
                     },

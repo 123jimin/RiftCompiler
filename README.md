@@ -130,7 +130,7 @@ An undefined identifier will be considered as a blank, and can't be longer than 
 | `debug` | any message | Prints the message while compiling, with line number and current beat number. |
 | `raw` | any JSON object | Add the object to the chart. |
 | `bladeMasterAttackRow` | row number | Sets the default attack row (`BlademasterAttackRow`) for blademasters. (-1 to disable it.) |
-| `portal` | `[duration, in_track, in_row, out_track, out_row]` | Creates a portal with given parameters. |
+| `portal` | `{"duration": duration, "in": [in_track, in_row], "out": [out_track, out_row]}` (all variables are numbers) | Creates a portal with given parameters. |
 
 Note for raw objects:
 
