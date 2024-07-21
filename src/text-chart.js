@@ -32,6 +32,10 @@ export const ENEMY_MAP = Object.freeze({
     YellowBat: 717,
     RedBat: 911,
 
+    Harpy: 8519,
+    QuickHarpy: 3826,
+    StrongHarpy: 8156,
+
     BladeMaster: 929,
     StrongBladeMaster: 3685,
 
@@ -46,6 +50,7 @@ export const ENEMY_MAP = Object.freeze({
     Apple: 7358,
     Drumstick: 1817,
     Ham: 3211,
+    
     Coin: 8883,
 });
 
