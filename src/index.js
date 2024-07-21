@@ -6,7 +6,8 @@ const parser = new ArgumentParser({
 });
 
 parser.add_argument("file", {help: "The input chart file path."});
-parser.add_argument("-o", "--out", {help: "The output chart file path.", required: true})
+parser.add_argument("-o", "--out", {help: "The output chart file path.", required: true});
+parser.add_argument("-w", "--watch", {help: "Keep compiling when the input chart file is updated.", action: "store_true"});
 
 const main = new Main(parser.parse_args());
-main.convert().catch(console.error.bind(console));
+main.run().catch(console.error.bind(console));
