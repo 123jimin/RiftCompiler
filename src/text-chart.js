@@ -2,9 +2,11 @@
 
 import { escapeRegExp } from "./util.js";
 
-/** @typedef {{type: 'assign', name: string, value: string}} ChartLineAssign */
+/** @typedef {{line_no: number}} ChartLineMetadata */
 /** @typedef {{type: 'notes', duration: number, notes: string[]}} ChartLineNotes  */
-/** @typedef {ChartLineAssign|ChartLineNotes} ChartLine */
+/** @typedef {{type: 'assign', name: string, value: string}} ChartLineAssign */
+/** @typedef {{type: 'invoke', name: string, params: string}} ChartLineInvoke */
+/** @typedef {ChartLineMetadata & (ChartLineNotes|ChartLineAssign|ChartLineInvoke)} ChartLine */
 
 export const ENEMY_MAP = Object.freeze({
     Nothing: -1,
@@ -50,7 +52,7 @@ export const ENEMY_MAP = Object.freeze({
     Apple: 7358,
     Drumstick: 1817,
     Ham: 3211,
-    
+
     Coin: 8883,
 });
 
@@ -80,11 +82,23 @@ function createChartLineRegExp(define_keys) {
 }
 
 /**
+ * @param {number} line_no
  * @param {RegExp} chart_line_regexp
  * @param {string} src 
  * @returns {ChartLine|null}
  */
-function parseChartLine(chart_line_regexp, src) {
+function parseChartLine(line_no, chart_line_regexp, src) {
+    if(src.startsWith('@')) {
+        const sep_space = src.indexOf(' ');
+        
+        return {
+            line_no,
+            type: 'invoke',
+            name: (sep_space < 0 ? src.slice(1) : src.slice(1, sep_space)).trim(),
+            params: (sep_space < 0 ? '' : src.slice(sep_space+1).trim()),
+        };
+    }
+
     const sep_ind = src.indexOf('|');
     if(sep_ind < 0) {
         const sep_eq = src.indexOf('=');
@@ -93,7 +107,7 @@ function parseChartLine(chart_line_regexp, src) {
         const name = src.slice(0, sep_eq).trim();
         const value = src.slice(sep_eq+1).trim();
 
-        return {type: 'assign', name, value};
+        return {line_no, type: 'assign', name, value};
     }
 
     const src_duration = src.slice(0, sep_ind).trim();
@@ -103,11 +117,13 @@ function parseChartLine(chart_line_regexp, src) {
     const match = str_chart_line_main.match(chart_line_regexp);
 
     if(match) {
-        return {type: 'notes', duration, notes: [match[1], match[2], match[3]]};
+        return {line_no, type: 'notes', duration, notes: [match[1], match[2], match[3]]};
     } else {
-        return {type: 'notes', duration, notes: [str_chart_line_main]};
+        return {line_no, type: 'notes', duration, notes: [str_chart_line_main]};
     }
 }
+
+/** @typedef {{events: Array<Record<string, unknown>>, beat_divisions: number, curr_beat: number, last_event_by_track: Array<object|null>}} TextChartProcessState */
 
 export class TextChart {
     /**
@@ -123,74 +139,28 @@ export class TextChart {
             events: /** @type {Array<Record<string, unknown>>} */ ([]),
         };
 
-        const {beatDivisions, events} = data;
+        /** @type {TextChartProcessState} */
+        const process_state = {
+            events: data.events,
+            beat_divisions: data.beatDivisions,
+            curr_beat: 0,
+            last_event_by_track: [null, null, null],
+        };
 
-        /** @type {Array<object|null>} */
-        const last_event_by_track = [null, null, null];
-
-        let curr_beat = 0;
-        line_loop: for(const line of lines) {
-            switch(line.type) {
-                case 'assign':
-                    if(line.name === 'beatNumber') {
-                        curr_beat = parseFloat(line.value);
-                        continue line_loop;
-                    }
-                    break;
-                case 'notes': {
-                    let next_beat = curr_beat + line.duration;
-                    if(!Number.isSafeInteger(next_beat)) {
-                        next_beat = Math.round(next_beat * beatDivisions) / beatDivisions;
-                    }
-
-                    const notes = line.notes;
-                    for(let track=0; track<notes.length; ++track) {
-                        const str_note = notes[track];
-        
-                        let note_data = /** @type {object|null} */ null;
-                        if(str_note in defines) {
-                            note_data = defines[str_note];
-                        } else if(str_note.length >= 4) {
-                            note_data = JSON.parse(str_note);
-                        } else if(str_note === '|') {
-                            const prev_note = last_event_by_track[track];
-                            if(prev_note) {
-                                prev_note.endBeatNumber = next_beat;
-                            }
-                            continue;
-                        }
-        
-                        if(note_data) {
-                            const note_duration = ('duration' in note_data) ? note_data['duration'] : 1.0;
-
-                            const event = {
-                                track: track+1,
-                                startBeatNumber: curr_beat,
-                                endBeatNumber: curr_beat + note_duration,
-                                ...note_data,
-                            };
-
-                            delete event.duration;
-        
-                            if('data' in event) event.data = {
-                                ShouldClampToSubdivisions: true,
-                                ...event.data,
-                            };
-        
-                            events.push(event);
-                            last_event_by_track[track] = event;
-                        } else {
-                            last_event_by_track[track] = null;
-                        }
-                    }
-
-                    curr_beat = next_beat;
-                    break;
+        for(const line of lines) {
+            try {
+                switch(line.type) {
+                    case 'notes': this.#processLineNotes(process_state, defines, line); break;
+                    case 'assign': this.#processLineAssign(process_state, line); break;
+                    case 'invoke': this.#processLineInvoke(process_state, line); break;
                 }
-            }            
+            } catch(e) {
+                console.error(`Error at line ${line.line_no}!`);
+                throw e;
+            }
         }
 
-        for(const event of events) {
+        for(const event of process_state.events) {
             const data = event.data;
             if(data) {
                 delete event.data;
@@ -202,6 +172,90 @@ export class TextChart {
         }
 
         this.data = data;
+    }
+
+    /**
+     * @param {TextChartProcessState} state 
+     * @param {Record<string, unknown>} defines 
+     * @param {ChartLineNotes} line 
+     */
+    #processLineNotes(state, defines, line) {
+        const {events, beat_divisions, curr_beat, last_event_by_track} = state;
+
+        let next_beat = curr_beat + line.duration;
+        if(!Number.isSafeInteger(next_beat)) {
+            next_beat = Math.round(next_beat * beat_divisions) / beat_divisions;
+        }
+
+        const notes = line.notes;
+        for(let track=0; track<notes.length; ++track) {
+            const str_note = notes[track];
+
+            let note_data = /** @type {object|null} */ null;
+            if(str_note in defines) {
+                note_data = defines[str_note];
+            } else if(str_note.length >= 4) {
+                note_data = JSON.parse(str_note);
+            } else if(str_note === '|') {
+                const prev_note = last_event_by_track[track];
+                if(prev_note) {
+                    prev_note.endBeatNumber = next_beat;
+                }
+                continue;
+            }
+
+            if(note_data) {
+                const note_duration = ('duration' in note_data) ? note_data['duration'] : 1.0;
+
+                const event = {
+                    track: track+1,
+                    startBeatNumber: curr_beat,
+                    endBeatNumber: curr_beat + note_duration,
+                    ...note_data,
+                };
+
+                delete event.duration;
+
+                if('data' in event) event.data = {
+                    ShouldClampToSubdivisions: true,
+                    ...event.data,
+                };
+
+                events.push(event);
+                last_event_by_track[track] = event;
+            } else {
+                last_event_by_track[track] = null;
+            }
+        }
+
+        state.curr_beat = next_beat;
+    }
+    
+    /**
+     * 
+     * @param {TextChartProcessState} state 
+     * @param {ChartLineAssign} line 
+     */
+    #processLineAssign(state, line) {
+        switch(line.name) {
+            case 'beatNumber':
+                state.curr_beat = parseFloat(line.value);
+                break;
+        }
+    }
+    
+    /**
+     * 
+     * @param {TextChartProcessState} state 
+     * @param {ChartLineMetadata & ChartLineInvoke} line 
+     */
+    #processLineInvoke(state, line) {
+        switch(line.name) {
+            case 'debug': {                            
+                console.log(`(debug) Line ${line.line_no}: beatNumber=${state.curr_beat}${line.params ? ' | ' + line.params : ''}`);
+                break;
+            }
+        }
     }
 
     toJSON() {
@@ -224,8 +278,9 @@ export class TextChart {
         const body_lines = [];
 
         let curr_part = "";
-
+        let line_no = 0;
         for(let line of src.split("\n")) {
+            ++line_no;
             line = line.trim();
             if(!line || line.startsWith('#')) continue;
             
@@ -258,7 +313,7 @@ export class TextChart {
                     break;
                 }
                 case "body": {
-                    const chart_line = parseChartLine(chart_line_regexp, line);
+                    const chart_line = parseChartLine(line_no, chart_line_regexp, line);
                     if(chart_line) body_lines.push(chart_line);
                     break;
                 }
