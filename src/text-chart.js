@@ -7,7 +7,7 @@ import { DEFAULT_OBJECTS } from "./default-objects.js";
 /** @import {ChartEvent, TextChartProcessState} from "./types.d.ts" */
 
 /** @typedef {{line_no: number}} ChartLineMetadata */
-/** @typedef {{type: 'notes', duration: number, notes: string[]}} ChartLineNotes  */
+/** @typedef {{type: 'notes', duration: [number, number], notes: string[]}} ChartLineNotes  */
 /** @typedef {{type: 'invoke', name: string, params: string}} ChartLineInvoke */
 /** @typedef {ChartLineMetadata & (ChartLineNotes|ChartLineInvoke)} ChartLine */
 
@@ -85,6 +85,20 @@ function createChartLineRegExp(define_keys) {
 }
 
 /**
+ * @param {string} src_duration
+ * @returns {[number, number]}
+ */
+function parseDuration(src_duration) {
+    src_duration = src_duration.trim();
+    if(!src_duration) return [1, 1];
+
+    const arr = src_duration.split('/').map((x) => parseFloat(x));
+    if(arr.length === 1) arr.push(1);
+
+    return /** @type {[number, number]} */ (arr);
+}
+
+/**
  * @param {number} line_no
  * @param {RegExp} chart_line_regexp
  * @param {string} src 
@@ -107,8 +121,7 @@ function parseChartLine(line_no, chart_line_regexp, src) {
         return null;
     }
 
-    const src_duration = src.slice(0, sep_ind).trim();
-    const duration = src_duration ? parseFloat(src_duration) : 1.0;
+    const duration = parseDuration(src.slice(0, sep_ind));
     
     const str_chart_line_main = src.slice(sep_ind+1).trim();
     const match = str_chart_line_main.match(chart_line_regexp);
@@ -192,10 +205,12 @@ export class TextChart {
     #processLineNotes(state, defines, line) {
         const {events, beat_divisions, curr_beat, last_event_by_track} = state;
 
-        let next_beat = curr_beat + line.duration;
+        let next_beat = curr_beat + line.duration[0] / line.duration[1];
         if(!Number.isSafeInteger(next_beat)) {
             next_beat = Math.round(next_beat * beat_divisions) / beat_divisions;
         }
+
+        if(!Number.isFinite(next_beat)) throw new Error(`Invalid next_beat=${next_beat}`);
 
         const notes = line.notes;
         for(let track=0; track<notes.length; ++track) {
