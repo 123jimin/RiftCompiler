@@ -47,6 +47,8 @@ A value can either be predefined names or a JSON object.
 
 Here are currently recommended list of definitions.
 
+Use `@use default` to automatically use these objects.
+
 ```text
 [object]
 
@@ -131,7 +133,7 @@ An undefined identifier will be considered as a blank, and can't be longer than 
 
 Note for raw objects:
 
-- Use `data` instead of `dataPairs`. 
+- Use `data` instead of `dataPairs`.
 - By default, `startBeatNumber` and `endBeatNumber` will be set automatically.
   - You may override `startBeatNumber`, and set `duration` or `endBeatNumber` to override it.
 

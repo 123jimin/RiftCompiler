@@ -2,6 +2,7 @@
 
 import { escapeRegExp } from "./util.js";
 import { ENEMY_MAP, TRAP_DIRECTION_MAP } from "./const.js";
+import { DEFAULT_OBJECTS } from "./default-objects.js";
 
 /** @import {ChartEvent, TextChartProcessState} from "./types.d.ts" */
 
@@ -157,7 +158,7 @@ export class TextChart {
                     case 'invoke': this.#processLineInvoke(process_state, line); break;
                 }
             } catch(e) {
-                console.error(`Error at line ${line.line_no}!`);
+                console.error(`Error at line ${line.line_no}`);
                 throw e;
             }
         }
@@ -363,6 +364,7 @@ export class TextChart {
 
         let curr_part = "";
         let line_no = 0;
+
         for(let line of src.split("\n")) {
             ++line_no;
             line = line.trim();
@@ -386,6 +388,14 @@ export class TextChart {
                     break;
                 }
                 case "object": {
+                    if(line[0] === '@' && line.toLowerCase() === "@use default") {
+                        for(const [k, v] of Object.entries(DEFAULT_OBJECTS)) {
+                            object_defines[k] = parseEvent(v);
+                        }
+
+                        break;
+                    }
+
                     const equal_index = line.indexOf('=');
                     if(equal_index > 0) {
                         const define_key = line.slice(0, equal_index).trimEnd();
